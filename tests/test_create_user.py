@@ -4,6 +4,7 @@ import requests
 import os
 import sys
 
+from helpers.api_errors import ApiErrors
 from helpers.steps import Steps
 
 sys.path.append(os.getcwd())
@@ -16,8 +17,6 @@ from helpers.utils import ApiHelper
 class TestCreateUser:
     url = Data.API_URL + "auth/register"
 
-
-
     @allure.title("Create new user")
     def test_create_user(self):
         payload = {
@@ -29,6 +28,8 @@ class TestCreateUser:
         assert response.status_code == 200
         assert len(response.json()['accessToken']) > 10
         assert len(response.json()['refreshToken']) > 10
+        Steps.delete_user({"access_token":response.json()['accessToken']})
+
 
     @allure.title("Cannot create user with the same email")
     def test_create_existing_user(self, new_user):
@@ -39,7 +40,7 @@ class TestCreateUser:
         }
         response = Steps.create_user(payload)
         assert response.status_code == 403
-        assert response.json()['message'] == "User already exists"
+        assert response.json()['message'] == ApiErrors.USER_EXISTS_ERROR
         assert response.json()['success'] == False
 
     @allure.title("Cannot create new user without all fields filled")
@@ -64,5 +65,5 @@ class TestCreateUser:
     def test_create_without_values(self, create_user_payload):
         response = Steps.create_user(create_user_payload)
         assert response.status_code == 403
-        assert response.json()['message'] == "Email, password and name are required fields"
+        assert response.json()['message'] == ApiErrors.USER_NO_REQUIRED_FIELDS_ERROR
         assert response.json()['success'] == False
